@@ -74,7 +74,7 @@ subject.send(())
 Add the following dependency to your Package.swift file:
 
 ```
-.package(url: "https://github.com/crane-hiromu/CombineAsyncable", "0.1.0"..<"1.0.0")
+.package(url: "https://github.com/crane-hiromu/CombineAsyncable", "0.2.0"..<"1.0.0")
 ```
 
 ### License
