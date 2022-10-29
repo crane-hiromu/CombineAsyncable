@@ -15,12 +15,12 @@ public extension Publisher where Self.Failure == Never {
     /// Example
     ///
     /// Just<Int>(99)
-    ///   .sink { number in
+    ///   .asyncSink { number in
     ///     // do some task
     ///   }
     ///   .store(in: &cancellable)
     ///
-    func sink(
+    func asyncSink(
         receiveValue: @escaping ((Self.Output) async -> Void)
     ) -> AnyCancellable {
         self.sink { value in
@@ -39,14 +39,14 @@ public extension Publisher where Self.Failure == Error {
     ///
     /// Just<Int>(99)
     ///   .setFailureType(to: Error.self)
-    ///   .sinkWithThrows(receiveCompletion: { result in
+    ///   .asyncSinkWithThrows(receiveCompletion: { result in
     ///     // do some resut handling task
     ///   }, receiveValue: { value in
     ///     // do some value handling task
     ///   })
     ///   .store(in: &cancellable)
     ///
-    func sinkWithThrows(
+    func asyncSinkWithThrows(
         receiveCompletion: @escaping ((Subscribers.Completion<Self.Failure>) async throws -> Void),
         receiveValue: @escaping ((Self.Output) async throws -> Void)
     ) -> AnyCancellable {
