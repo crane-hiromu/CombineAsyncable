@@ -6,7 +6,7 @@ It bridges from Combine to Concurrency.
 
 A small set of extensions that allow to combine new swift concurrency with Combine.
 
-[Here](https://qiita.com/hcrane/items/dd7d1cbe5a3d2acfe252) are the details　in Japanese.
+[Here](https://qiita.com/hcrane/items/dd7d1cbe5a3d2acfe252) are the details in Japanese.
 
 
 ## Operator
