@@ -26,6 +26,7 @@ extension Future where Failure == Never {
     ) {
         self.init { promise in
             Task(priority: priority) {
+                try? Task.checkCancellation()
                 let result = await operation()
                 promise(.success(result))
             }
@@ -51,6 +52,7 @@ extension Future where Failure == Error {
     ) {
         self.init { promise in
             Task(priority: priority) {
+                try Task.checkCancellation()
                 do {
                     let result = try await operation()
                     promise(.success(result))

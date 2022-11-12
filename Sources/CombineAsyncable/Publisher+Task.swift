@@ -21,12 +21,18 @@ public extension Publisher where Self.Failure == Never {
     ///   .store(in: &cancellable)
     ///
     func asyncSink(
+        priority: TaskPriority? = nil,
         receiveValue: @escaping ((Self.Output) async -> Void)
     ) -> AnyCancellable {
-        self.sink { value in
-            Task {
+        var task: Task<Void, Never>?
+                
+        return self.sink { value in
+            task = Task(priority: priority) {
+                try? Task.checkCancellation()
                 await receiveValue(value)
             }
+        }.cancel {
+            task?.cancel()
         }
     }
 }
@@ -47,21 +53,29 @@ public extension Publisher where Self.Failure == Error {
     ///   .store(in: &cancellable)
     ///
     func asyncSinkWithThrows(
+        receiveCompletionPriority: TaskPriority? = nil,
         receiveCompletion: @escaping ((Subscribers.Completion<Self.Failure>) async throws -> Void),
+        receiveValuePriority: TaskPriority? = nil,
         receiveValue: @escaping ((Self.Output) async throws -> Void)
     ) -> AnyCancellable {
-        self.sink(
+        var tasks = [Task<Void, Error>]()
+        
+        return self.sink(
             receiveCompletion: { result in
-                Task {
+                tasks.append(Task(priority: receiveCompletionPriority) {
+                    try Task.checkCancellation()
                     try await receiveCompletion(result)
-                }
+                })
             },
             receiveValue: { value in
-                Task {
+                tasks.append(Task(priority: receiveValuePriority) {
+                    try Task.checkCancellation()
                     try await receiveValue(value)
-                }
+                })
             }
-        )
+        ).cancel {
+            tasks.forEach { $0.cancel() }
+        }
     }
 }
 
@@ -80,14 +94,13 @@ public extension Publisher {
     ///   .store(in: &cancellable)
     ///
     func asyncMap<V>(
+        priority: TaskPriority? = nil,
         _ asyncFunction: @escaping (Output) async -> V
     ) -> Publishers.FlatMap<Future<V, Never>, Self> {
         
         flatMap { value in
-            Future { promise in
-                Task {
-                    promise(.success(await asyncFunction(value)))
-                }
+            Future(priority: priority) {
+                await asyncFunction(value)
             }
         }
     }
@@ -108,19 +121,13 @@ public extension Publisher {
     /// .store(in: &cancellable)
     ///
     func asyncMapWithThrows<V>(
-        _ transform: @escaping (Output) async throws -> V
+        priority: TaskPriority? = nil,
+        _ asyncFunction: @escaping (Output) async throws -> V
     ) -> Publishers.FlatMap<Future<V, Error>, Publishers.SetFailureType<Self, Error>> {
         
         flatMap { value in
-            Future { promise in
-                Task {
-                    do {
-                        let output = try await transform(value)
-                        promise(.success(output))
-                    } catch {
-                        promise(.failure(error))
-                    }
-                }
+            Future(priority: priority) {
+                try await asyncFunction(value)
             }
         }
     }
