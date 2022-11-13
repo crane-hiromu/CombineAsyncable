@@ -14,24 +14,26 @@ public extension Publisher where Self.Failure == Never {
     
     /// Example
     ///
-    /// Just<Int>(99)
-    ///   .asyncSink { number in
+    /// let subject = PassthroughSubject<Void, Never>()
+    ///
+    /// var cancellable = subject.asyncSink { in
     ///     // do some task
-    ///   }
-    ///   .store(in: &cancellable)
+    /// }
+    ///
+    /// subject.send(())
     ///
     func asyncSink(
         priority: TaskPriority? = nil,
         receiveValue: @escaping ((Self.Output) async -> Void)
     ) -> AnyCancellable {
         var task: Task<Void, Never>?
-                
-        return self.sink { value in
+        var cancellable: AnyCancellable = self.sink { value in
             task = Task(priority: priority) {
                 try? Task.checkCancellation()
                 await receiveValue(value)
             }
-        }.cancel {
+        }
+        return cancellable.cancel {
             task?.cancel()
         }
     }
@@ -59,8 +61,7 @@ public extension Publisher where Self.Failure == Error {
         receiveValue: @escaping ((Self.Output) async throws -> Void)
     ) -> AnyCancellable {
         var tasks = [Task<Void, Error>]()
-        
-        return self.sink(
+        var cancellable: AnyCancellable = self.sink(
             receiveCompletion: { result in
                 tasks.append(Task(priority: receiveCompletionPriority) {
                     try Task.checkCancellation()
@@ -73,7 +74,8 @@ public extension Publisher where Self.Failure == Error {
                     try await receiveValue(value)
                 })
             }
-        ).cancel {
+        )
+        return cancellable.cancel {
             tasks.forEach { $0.cancel() }
         }
     }
