@@ -17,7 +17,7 @@ public extension Publisher where Self.Failure == Never {
     /// let subject = PassthroughSubject<Void, Never>()
     ///
     /// var cancellable = subject.asyncSink { in
-    ///     // do some task
+    ///   await callAsyncFunction()
     /// }
     ///
     /// subject.send(())
@@ -25,17 +25,27 @@ public extension Publisher where Self.Failure == Never {
     func asyncSink(
         priority: TaskPriority? = nil,
         receiveValue: @escaping ((Self.Output) async -> Void)
-    ) -> AnyCancellable {
+    ) -> Set<AnyCancellable> {
+        var set = Set<AnyCancellable>()
         var task: Task<Void, Never>?
-        var cancellable: AnyCancellable = self.sink { value in
+        
+        let cancellable = self.sink { value in
             task = Task(priority: priority) {
                 try? Task.checkCancellation()
                 await receiveValue(value)
             }
         }
-        return cancellable.cancel {
-            task?.cancel()
-        }
+        
+        // store cancellable to prevent from canceling stream
+        cancellable
+            .store(in: &set)
+        
+        // generate task cancellable
+        cancellable
+            .cancel { task?.cancel() }
+            .store(in: &set)
+        
+        return set
     }
 }
 
@@ -48,9 +58,9 @@ public extension Publisher where Self.Failure == Error {
     /// Just<Int>(99)
     ///   .setFailureType(to: Error.self)
     ///   .asyncSinkWithThrows(receiveCompletion: { result in
-    ///     // do some resut handling task
+    ///     try await callAsyncThrowsFunction()
     ///   }, receiveValue: { value in
-    ///     // do some value handling task
+    ///     try await callAsyncThrowsFunction()
     ///   })
     ///   .store(in: &cancellable)
     ///
@@ -61,7 +71,7 @@ public extension Publisher where Self.Failure == Error {
         receiveValue: @escaping ((Self.Output) async throws -> Void)
     ) -> AnyCancellable {
         var tasks = [Task<Void, Error>]()
-        var cancellable: AnyCancellable = self.sink(
+        let cancellable: AnyCancellable = self.sink(
             receiveCompletion: { result in
                 tasks.append(Task(priority: receiveCompletionPriority) {
                     try Task.checkCancellation()
@@ -88,7 +98,7 @@ public extension Publisher {
     ///
     /// Just<Int>(99)
     ///   .asyncMap { number in
-    ///     // do some task
+    ///     await callAsyncFunction(number)
     ///   }
     ///   .sink { number in
     ///     // do some handling
