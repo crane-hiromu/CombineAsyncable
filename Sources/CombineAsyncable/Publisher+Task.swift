@@ -69,8 +69,10 @@ public extension Publisher where Self.Failure == Error {
         receiveCompletion: @escaping ((Subscribers.Completion<Self.Failure>) async throws -> Void),
         receiveValuePriority: TaskPriority? = nil,
         receiveValue: @escaping ((Self.Output) async throws -> Void)
-    ) -> AnyCancellable {
+    ) -> Set<AnyCancellable> {
+        var set = Set<AnyCancellable>()
         var tasks = [Task<Void, Error>]()
+        
         let cancellable: AnyCancellable = self.sink(
             receiveCompletion: { result in
                 tasks.append(Task(priority: receiveCompletionPriority) {
@@ -85,9 +87,19 @@ public extension Publisher where Self.Failure == Error {
                 })
             }
         )
-        return cancellable.cancel {
-            tasks.forEach { $0.cancel() }
-        }
+        
+        // store cancellable to prevent from canceling stream
+        cancellable
+            .store(in: &set)
+        
+        // generate task cancellable
+        cancellable
+            .cancel {
+                tasks.forEach { $0.cancel() }
+            }
+            .store(in: &set)
+        
+        return set
     }
 }
 
