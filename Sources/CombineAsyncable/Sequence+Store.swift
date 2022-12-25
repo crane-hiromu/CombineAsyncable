@@ -10,7 +10,7 @@ import Combine
 
 // MARK: - Sequence Extension
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-extension Sequence where Element == AnyCancellable {
+public extension Sequence where Element == AnyCancellable {
     
     /// Stores this type-erasing cancellable collection in the specified collection.
     ///
