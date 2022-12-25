@@ -10,7 +10,7 @@ import Combine
 
 // MARK: - Future Extension (Never)
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-extension Future where Failure == Never {
+public extension Future where Failure == Never {
 
     /// Example
     ///
@@ -36,7 +36,7 @@ extension Future where Failure == Never {
 
 // MARK: - Future Extension (Error)
 @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-extension Future where Failure == Error {
+public extension Future where Failure == Error {
 
     /// Example
     ///
