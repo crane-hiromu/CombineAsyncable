@@ -31,7 +31,7 @@ public extension Publisher where Self.Failure == Never {
         
         let cancellable = self.sink { value in
             task = Task(priority: priority) {
-                try? Task.checkCancellation()
+                guard !Task.isCancelled else { return }
                 await receiveValue(value)
             }
         }
