@@ -48,7 +48,7 @@ subject.send(())
 
 ```.swift
 Just<Int>(10)
-    .sink { number in
+    .asyncSink { number in
         await doSomething(number)
     }
     .store(in: &cancellable)
